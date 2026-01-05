@@ -1,27 +1,33 @@
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { ReactLayoutProps } from "@/types/react";
 import { auth } from "@/lib/auth";
-import React from "react";
 
 export default async function ProtectedLayout({ children }: ReactLayoutProps) {
-    const session = await auth.api.getSession({
-        headers: await headers()
-    });
-    if (!session) {
-        return (
-            <html lang="ja">
-                <body>
-                    <div className="flex items-center justify-center h-screen">
-                        <p className="text-gray-500">ログインが必要です。</p>
-                    </div>
-                </body>
-            </html>
-        );
-    }
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-    return (
-        <main>
-            {children}
-        </main>
-    )
-};
+  if (!session?.session || !session.user) {
+    return redirect("/auth");
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a]">
+      {/* Sidebar */}
+      <DashboardSidebar
+        session={session.session}
+        user={{
+          ...session.user,
+          image: session.user.image ?? null,
+        }}
+      />
+
+      {/* Main Content Area */}
+      <main className="pl-[240px]">
+        {children}
+      </main>
+    </div>
+  );
+}
