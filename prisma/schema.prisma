@@ -12,6 +12,31 @@ enum plan {
   ENTERPRISE
 }
 
+enum scopes {
+  OWNER
+
+  // env
+  READ_ENV
+  WRITE_ENV
+  DELETE_ENV
+
+  // project
+  READ_PROJECT
+  WRITE_PROJECT
+  DELETE_PROJECT
+
+  // branch
+  READ_BRANCH
+  WEITE_BRANCH
+  DELETE_BRANCH
+
+  // member
+  MANAGE_MEMBERS
+
+  // billing
+  MANAGE_BILLING
+}
+
 model user {
   id            String  @id @default(cuid())
   name          String?
@@ -29,6 +54,8 @@ model user {
   updatedAt        DateTime          @updatedAt
   projects         project[]
   paymentHistories payment_history[]
+  members          member[]
+  tokens           token[]
 }
 
 model account {
@@ -88,13 +115,32 @@ model project {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  branches  branch[]
+
+  branches branch[]
+  members  member[]
+  tokens   token[]
+}
+
+model member {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  scopes    scopes[] @default([OWNER])
+
+  project project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    user    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, userId])
 }
 
 model branch {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   name      String
   projectId String
+  isMain    Boolean @default(false)
 
   project project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -126,6 +172,22 @@ model payment_history {
   transactionId String   @unique
 
   user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model token {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  projectId String
+  expiresAt DateTime
+
+  scopes scopes[] @default([READ_ENV])
+
+  project project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    user    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
