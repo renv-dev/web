@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 
-
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false); // Placeholder for auth state
@@ -71,12 +70,12 @@ export default function Header() {
         {/* Auth Buttons */}
         <div className="flex items-center gap-3">
           <Link
-            href={isLoggedIn ? "/dashboard" : "/auth"}
+            href={isLoggedIn ? "/projects" : "/auth"}
             className="text-[#a1a1aa] hover:text-white transition-colors text-sm hidden sm:block">
             ログイン
           </Link>
           <Link
-            href={isLoggedIn ? "/dashboard" : "/auth"}
+            href={isLoggedIn ? "/projects" : "/auth"}
             className="px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-[#e5e5e5] transition-colors">
             無料で始める
           </Link>

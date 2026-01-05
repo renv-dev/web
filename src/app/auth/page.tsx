@@ -30,7 +30,7 @@ export default function AuthPage() {
         if (result.error) {
           setError(result.error.message || "ログインに失敗しました");
         } else {
-          router.push("/dashboard");
+          router.push("/projects");
           router.refresh();
         }
       } else {
@@ -42,7 +42,7 @@ export default function AuthPage() {
         if (result.error) {
           setError(result.error.message || "登録に失敗しました");
         } else {
-          router.push("/dashboard");
+          router.push("/projects");
           router.refresh();
         }
       }
@@ -59,7 +59,7 @@ export default function AuthPage() {
     try {
       await signIn.social({
         provider,
-        callbackURL: "/dashboard",
+        callbackURL: "/projects",
       });
     } catch (err) {
       setError("ソーシャルログインに失敗しました");
