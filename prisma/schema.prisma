@@ -3,53 +3,67 @@ generator client {
 }
 
 datasource db {
-  provider = "cockroachdb"
+  provider = "postgresql"
+}
+
+enum plan {
+  FREE
+  TEAM
+  ENTERPRISE
 }
 
 model user {
-  id            String    @id @default(cuid())
+  id            String  @id @default(cuid())
   name          String?
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  email         String  @unique
+  emailVerified Boolean @default(false)
   image         String?
 
-  accounts      account[]
-  sessions      session[]
+  card_token String? @unique
+  plan       plan    @default(FREE)
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  accounts account[]
+  sessions session[]
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  projects         project[]
+  paymentHistories payment_history[]
 }
 
 model account {
-  id                String  @id @default(cuid())
-  userId            String
-  accountId         String
-  providerId        String
-  accessToken       String?
-  refreshToken      String?
-  accessTokenExpiresAt DateTime?
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
-  scope             String?
-  idToken           String?
-  password          String?
+  scope                 String?
+  idToken               String?
+  password              String?
 
   user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([providerId, accountId])
 }
 
 model session {
-  id           String   @id @default(cuid())
-  token        String   @unique
-  userId       String
-  expiresAt    DateTime
-  ipAddress    String?
-  userAgent    String?
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
 
   user user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model verification {
@@ -58,8 +72,61 @@ model verification {
   value      String
   expiresAt  DateTime
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([identifier, value])
+}
+
+model project {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+
+  owner user @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  branches  branch[]
+}
+
+model branch {
+  id        String @id @default(cuid())
+  name      String
+  projectId String
+
+  project project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  envs      env[]
+}
+
+model env {
+  id       String @id @default(cuid())
+  key      String
+  value    String
+  branchId String
+
+  branch branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, branchId])
+}
+
+model payment_history {
+  id            String   @id @default(cuid())
+  userId        String
+  plan          plan
+  amount        Int
+  paidAt        DateTime @default(now())
+  transactionId String   @unique
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

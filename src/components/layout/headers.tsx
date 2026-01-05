@@ -1,16 +1,23 @@
 "use client";
-
-import Link from "next/link";
 import { useState, useEffect } from "react";
+import { authClient } from "@/lib/auth-client";
+import Link from "next/link";
+
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Placeholder for auth state
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
+    const checkAuth = async () => {
+      const session = await authClient.getSession();
+      setIsLoggedIn(!!session.data);
+    }
     window.addEventListener("scroll", handleScroll);
+    checkAuth();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -64,15 +71,13 @@ export default function Header() {
         {/* Auth Buttons */}
         <div className="flex items-center gap-3">
           <Link
-            href="/auth"
-            className="text-[#a1a1aa] hover:text-white transition-colors text-sm hidden sm:block"
-          >
+            href={isLoggedIn ? "/dashboard" : "/auth"}
+            className="text-[#a1a1aa] hover:text-white transition-colors text-sm hidden sm:block">
             ログイン
           </Link>
           <Link
-            href="/auth"
-            className="px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-[#e5e5e5] transition-colors"
-          >
+            href={isLoggedIn ? "/dashboard" : "/auth"}
+            className="px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-[#e5e5e5] transition-colors">
             無料で始める
           </Link>
         </div>
