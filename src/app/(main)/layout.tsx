@@ -1,6 +1,6 @@
 import { ReactLayoutProps } from "@/types/react";
 import Header from "@/components/layout/headers";
-import Footer from "@/components/landing/footer";
+import Footer from "@/components/layout/footer";
 
 export default function LPLayout({ children }: ReactLayoutProps) {
     return (
