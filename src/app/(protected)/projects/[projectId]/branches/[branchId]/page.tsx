@@ -61,7 +61,7 @@ export default async function BranchPage({ params }: BranchPageProps) {
     });
 
     if (!branch) {
-        notFound();
+        return notFound();
     }
 
     const currentMember = branch.project.members[0];
