@@ -12,7 +12,7 @@ import { NextResponse } from 'next/server';
  * @param status - HTTPステータスコード（デフォルト: 200）
  * @returns NextResponseオブジェクト
  */
-export function successResponse<T = any>(
+export function successResponse<T = unknown>(
   data?: T,
   message: string = 'Success',
   status: number = 200
@@ -37,7 +37,7 @@ export function successResponse<T = any>(
 export function errorResponse(
   message: string,
   status: number = 400,
-  errors?: any
+  errors?: Record<string, string[]>
 ): NextResponse {
   return NextResponse.json(
     {

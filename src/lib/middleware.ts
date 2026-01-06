@@ -33,6 +33,7 @@ const withAuth = async (req: NextRequest, handler: (req: NextRequest, session: A
             if (isValidToken) return handler(req, { type: "token", apiToken: isValidToken }, context);
             return unauthorizedResponse("Unauthorized: Invalid token");
         } catch (error) {
+            console.error("Token validation error:", error);
             return unauthorizedResponse("Unauthorized: Token validation error");
         }
         

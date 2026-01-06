@@ -47,6 +47,7 @@ export default function AuthPage() {
         }
       }
     } catch (err) {
+      console.error(err);
       setError("エラーが発生しました。もう一度お試しください。");
     } finally {
       setLoading(false);
@@ -62,6 +63,7 @@ export default function AuthPage() {
         callbackURL: "/projects",
       });
     } catch (err) {
+      console.error(err);
       setError("ソーシャルログインに失敗しました");
       setLoading(false);
     }

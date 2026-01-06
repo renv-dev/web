@@ -9,11 +9,9 @@ interface Context {
         projectId: string;
         branchId: string;
     }>;
-    
-    searchParams: Promise<{}>;
 }
 
-const GET = (req: NextRequest, ctx: Context) => withAuth(req, async (req, authCtx, ctx) => {
+const GET = (req: NextRequest, ctx: Context) => withAuth(req, async (_, authCtx, ctx) => {
     const { projectId, branchId } = await ctx!.params;
 
     if (authCtx.type === "session") {
@@ -54,7 +52,7 @@ const GET = (req: NextRequest, ctx: Context) => withAuth(req, async (req, authCt
     }
 }, ctx as Context);
 
-const DELETE = (req: NextRequest, ctx: Context) => withAuth(req, async (req, authCtx, ctx) => {
+const DELETE = (req: NextRequest, ctx: Context) => withAuth(req, async (_, authCtx, ctx) => {
     const { projectId, branchId } = await ctx!.params;
 
     if (authCtx.type === "session") {

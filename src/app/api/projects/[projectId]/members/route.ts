@@ -1,6 +1,4 @@
-import { headers } from "next/headers";
 import { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
 import { withAuth } from "@/lib/middleware";
 import { prisma } from "@/lib/prisma";
 import { successResponse, errorResponse } from "@/lib/helpers/response";
