@@ -60,7 +60,7 @@ export function NewBranchModal({ isOpen, onClose, projectId }: NewbranchModalPro
       }
 
       const branch = await response.json();
-      router.push(`/branchs/${branch.id}`);
+      router.push(`/projects/${projectId}/branches/${branch.id}`);
       router.refresh();
       onClose();
     } catch (err) {

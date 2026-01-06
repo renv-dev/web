@@ -65,7 +65,6 @@ export function ProjectSettingsForm({
     currentUserScopes,
     currentUserId,
 }: ProjectSettingsFormProps) {
-    const router = useRouter();
     const [activeTab, setActiveTab] = useState<"general" | "members" | "tokens" | "danger">("general");
 
     const isOwner = currentUserScopes.includes("OWNER");

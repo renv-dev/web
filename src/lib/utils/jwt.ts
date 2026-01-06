@@ -19,7 +19,7 @@ export async function signJwt(payload: JWTPayload, options: SignOptions = {}): P
   jwt.setProtectedHeader({ alg: 'HS256' }).setIssuedAt();
 
   if (options.expiresIn) {
-    jwt.setExpirationTime(options.expiresIn as any);
+    jwt.setExpirationTime(options.expiresIn as string | number | Date);
   } else {
     jwt.setExpirationTime('15m');
   }
@@ -40,6 +40,7 @@ export function decodeJwt(token: string): JWTPayload | null {
     const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
     return payload as JWTPayload;
   } catch (e) {
+    console.error("Failed to decode JWT:", e);
     return null;
   }
 }
@@ -52,5 +53,3 @@ export async function isJwtValid(token: string): Promise<boolean> {
     return false;
   }
 }
-
-export default { signJwt, verifyJwt, decodeJwt, isJwtValid };

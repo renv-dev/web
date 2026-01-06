@@ -89,8 +89,8 @@ export function EnvDashboard({
             setNewValue("");
             setIsAdding(false);
             router.refresh();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to create");
+        } catch {
+            setError("Failed to create");
         } finally {
             setIsSubmitting(false);
         }

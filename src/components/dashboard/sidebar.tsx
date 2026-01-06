@@ -1,8 +1,7 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Session } from "better-auth";
+import { Session, User } from "better-auth";
 import { signOut } from "@/lib/auth-client";
 import {
   FolderKanban,
@@ -10,24 +9,19 @@ import {
   Settings,
   LogOut,
   ChevronDown,
-  Plus,
   HelpCircle,
   FileText,
 } from "lucide-react";
 
 interface DashboardSidebarProps {
   session: Session | null;
-  user: {
-    name: string | null;
-    email: string;
-    image: string | null;
-    [key: string]: any;
-  } | null;
+  user: User;
 }
 
 export function DashboardSidebar({ session, user }: DashboardSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  console.log("Sidebar session:", session);
 
   const navItems = [
     {
@@ -48,7 +42,6 @@ export function DashboardSidebar({ session, user }: DashboardSidebarProps) {
   ];
 
   const isActive = (href: string) => pathname.startsWith(href);
-
   const handleSignOut = async () => {
     await signOut({
       fetchOptions: {
