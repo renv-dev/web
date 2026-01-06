@@ -7,7 +7,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
         headers: await headers(),
     });
     if (session) {
-        redirect("/");
+        redirect("/projects");
     }
 
     return (
