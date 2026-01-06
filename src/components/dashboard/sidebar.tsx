@@ -37,7 +37,7 @@ export function DashboardSidebar({ session, user }: DashboardSidebarProps) {
     },
     {
       label: "API Keys",
-      href: "/api-keys",
+      href: "/keys",
       icon: Key,
     },
     {
@@ -64,7 +64,7 @@ export function DashboardSidebar({ session, user }: DashboardSidebarProps) {
     <aside className="fixed left-0 top-0 z-40 h-screen w-[240px] border-r border-[#1f1f1f] bg-[#0a0a0a] flex flex-col">
       {/* Logo */}
       <div className="flex h-14 items-center border-b border-[#1f1f1f] px-4">
-        <Link href="/projects" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#a855f7] flex items-center justify-center font-bold text-white text-xs">
             R
           </div>
