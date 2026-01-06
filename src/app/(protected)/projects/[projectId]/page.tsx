@@ -5,18 +5,19 @@ import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { ProjectOverview } from "@/components/dashboard/project-overview";
 
-interface ProjectPageProps {
+export interface ProjectPageProps {
   params: Promise<{
-    id: string;
+    projectId: string;
   }>;
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
-  const { id } = await params;
-  
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const [{ projectId }, session] = await Promise.all([
+    params,
+    auth.api.getSession({
+      headers: await headers(),
+    }),
+  ]);
 
   if (!session?.session) {
     return null;
@@ -25,7 +26,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   // Find project with membership check
   const project = await prisma.project.findFirst({
     where: {
-      id,
+      id: projectId,
       members: {
         some: {
           userId: session.session.userId,

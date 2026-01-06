@@ -5,14 +5,14 @@ import { successResponse, unauthorizedResponse, forbiddenResponse, errorResponse
 
 type BooleanString = "true" | "false";
 interface Context {
-    params: Promise<{ id: string }>;
+    params: Promise<{ projectId: string }>;
     searchParams: Promise<{ member?: BooleanString, branch?: BooleanString }>;
 }
 
 const GET = (req: NextRequest, context: Context) => withAuth(req, async (session, authCtx, ctx) => {
     if (!ctx) return errorResponse("Params not found", 400);
     const [params, searchParams] = await Promise.all([ctx.params, ctx.searchParams]);
-    const projectId = params.id;
+    const projectId = params.projectId;
 
     if (authCtx.type === "session") {
         const userId = authCtx.session!.userId;
@@ -45,8 +45,8 @@ const GET = (req: NextRequest, context: Context) => withAuth(req, async (session
         const project = await prisma.project.findUnique({
             where: { id: projectId },
             include: {
-                members: searchParams.member === "true" ? true : false,
-                branches: searchParams.branch === "true" ? true : false,
+                members: searchParams!.member === "true" ? true : false,
+                branches: searchParams!.branch === "true" ? true : false,
             }
         });
         return successResponse(project, "Project fetched successfully");
@@ -58,9 +58,8 @@ const GET = (req: NextRequest, context: Context) => withAuth(req, async (session
 
 const PUT = (req: NextRequest, context: Context) => withAuth(req, async (req, authCtx, ctx) => {
     if (!ctx) return errorResponse("Params not found", 400);
-    const params = await ctx.params;
-    const projectId = params.id;
-    const payload = await req.json();
+    const [params, payload] = await Promise.all([ctx.params, req.json()]);
+    const projectId = params.projectId;
     const { name, description } = payload;
 
     if (authCtx.type === "session") {
@@ -105,10 +104,58 @@ const PUT = (req: NextRequest, context: Context) => withAuth(req, async (req, au
     }
 }, context as Context);
 
+const PATCH = (req: NextRequest, context: Context) => withAuth(req, async (req, authCtx, ctx) => {
+    if (!ctx) return errorResponse("Params not found", 400);
+    const [params, payload] = await Promise.all([ctx.params, req.json()]);
+    const projectId = params.projectId;
+    const { name, description } = payload;
+
+    if (authCtx.type === "session") {
+        const userId = authCtx.session!.userId;
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                include: {
+                    members: {
+                        where: { projectId },
+                    },
+                },
+            });
+            if (!user) return unauthorizedResponse();
+            const member = user.members[0];
+            if (!member) return forbiddenResponse("You are not a member of this project");
+            const hasWriteProjectScope = member.scopes.includes("WRITE_PROJECT") || member.scopes.includes("OWNER");
+            if (!hasWriteProjectScope) return forbiddenResponse("You do not have permission to modify this project");
+        } catch (error) {
+            console.error("Error checking project access:", error);
+            return errorResponse("Failed to verify project access", 500);
+        }
+    } else if (authCtx.type === "token") {
+        const token = authCtx.apiToken!;
+        if (token.projectId !== projectId) return forbiddenResponse("API token does not have access to this project");
+        const hasWriteProjectScope = token.scopes.includes("WRITE_PROJECT") || token.scopes.includes("OWNER");
+        if (!hasWriteProjectScope) return forbiddenResponse("API token does not have permission to modify this project");
+    }
+
+    try {
+        const updatedProject = await prisma.project.update({
+            where: { id: projectId },
+            data: {
+                ...(name && { name }),
+                ...(description !== undefined && { description }),
+            },
+        });
+        return successResponse(updatedProject, "Project updated successfully");
+    } catch (error) {
+        console.error("Error updating project:", error);
+        return errorResponse("Failed to update project", 500);
+    }
+}, context as Context);
+
 const DELETE = (req: NextRequest, context: Context) => withAuth(req, async (req, authCtx, ctx) => {
     if (!ctx) return errorResponse("Params not found", 400);
     const params = await ctx.params;
-    const projectId = params.id;
+    const projectId = params.projectId;
 
     if (authCtx.type === "session") {
         const userId = authCtx.session!.userId;
@@ -148,4 +195,4 @@ const DELETE = (req: NextRequest, context: Context) => withAuth(req, async (req,
     }
 }, context as Context);
 
-export { GET, PUT, DELETE };
+export { GET, PUT, PATCH, DELETE };
