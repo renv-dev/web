@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { X, Loader2 } from "lucide-react";
 
-interface NewProjectModalProps {
+interface NewbranchModalProps {
   isOpen: boolean;
   onClose: () => void;
+  projectId: string;
 }
 
-export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
+export function NewBranchModal({ isOpen, onClose, projectId }: NewbranchModalProps) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -37,7 +38,7 @@ export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError("Project name is required");
+      setError("branch name is required");
       return;
     }
 
@@ -45,7 +46,7 @@ export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
     setError(null);
 
     try {
-      const response = await fetch("/api/projects", {
+      const response = await fetch(`/api/projects/${projectId}/branches`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -58,11 +59,11 @@ export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to create project");
+        throw new Error(data.error || "Failed to create branch");
       }
 
-      const project = await response.json();
-      router.push(`/projects/${project.id}`);
+      const branch = await response.json();
+      router.push(`/branchs/${branch.id}`);
       router.refresh();
       onClose();
     } catch (err) {
@@ -86,7 +87,7 @@ export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
       <div className="relative w-full max-w-md mx-4 bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#1f1f1f]">
-          <h2 className="text-lg font-semibold text-white">Create new project</h2>
+          <h2 className="text-lg font-semibold text-white">Create new branch</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#1a1a1a] transition-colors"
@@ -108,14 +109,14 @@ export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
             {/* Name */}
             <div className="space-y-2">
               <label htmlFor="name" className="block text-sm font-medium text-[#e5e5e5]">
-                Project name
+                branch name
               </label>
               <input
                 id="name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="my-awesome-project"
+                placeholder="my-awesome-branch"
                 className="w-full h-10 px-3 bg-[#141414] border border-[#1f1f1f] rounded-lg text-white placeholder-[#666666] focus:outline-none focus:border-[#6366f1] transition-colors"
                 autoFocus
               />
@@ -131,7 +132,7 @@ export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="A brief description of your project"
+                placeholder="A brief description of your branch"
                 rows={3}
                 className="w-full px-3 py-2 bg-[#141414] border border-[#1f1f1f] rounded-lg text-white placeholder-[#666666] focus:outline-none focus:border-[#6366f1] transition-colors resize-none"
               />
@@ -153,7 +154,7 @@ export function NewProjectModal({ isOpen, onClose }: NewProjectModalProps) {
               className="h-9 px-4 text-sm font-medium bg-[#6366f1] hover:bg-[#5457e5] disabled:bg-[#6366f1]/50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
             >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Create project
+              Create branch
             </button>
           </div>
         </form>
