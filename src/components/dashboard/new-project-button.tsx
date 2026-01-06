@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { NewProjectModal } from "../modal/new-project-modal";
+import { NewProjectModal } from "../modal/new-project";
 
 interface NewProjectButtonProps {
   size?: "default" | "lg";
