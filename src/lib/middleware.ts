@@ -7,6 +7,7 @@ import { unauthorizedResponse } from "./helpers/response";
 
 interface Context {
     params: Promise<{ [key: string]: string }>;
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
 }
 
 interface AuthContext {
