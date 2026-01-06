@@ -1,6 +1,4 @@
 "use client";
-
-import Link from "next/link";
 import {
   GitBranch,
   Users,
@@ -8,7 +6,12 @@ import {
   Plus,
   ChevronRight,
   Shield,
+  List
 } from "lucide-react";
+import { useState } from "react";
+import { scopes } from "@prisma/client";
+import { NewBranchModal } from "../modal/new-branch";
+import Link from "next/link";
 
 interface Branch {
   id: string;
@@ -16,19 +19,7 @@ interface Branch {
   createdAt: Date;
 }
 
-type Scopes =
-  | "OWNER"
-  | "READ_ENV"
-  | "WRITE_ENV"
-  | "DELETE_ENV"
-  | "READ_PROJECT"
-  | "WRITE_PROJECT"
-  | "DELETE_PROJECT"
-  | "READ_BRANCH"
-  | "WEITE_BRANCH"
-  | "DELETE_BRANCH"
-  | "MANAGE_MEMBERS"
-  | "MANAGE_BILLING";
+type Scopes = scopes;
 
 interface Member {
   id: string;
@@ -57,15 +48,25 @@ export function ProjectOverview({
   members,
   currentUserScopes,
 }: ProjectOverviewProps) {
+  const [isNewBranchModalOpen, setIsNewBranchModalOpen] = useState<boolean>(false);
+
+  const handleOpenNewBranchModal = () => {
+    setIsNewBranchModalOpen(true);
+  }
+  const handleCloseNewBranchModal = () => {
+    setIsNewBranchModalOpen(false);
+  }
+
+
   // OWNERスコープを持つか、管理系スコープを持っているかをチェック
-  const isOwnerOrAdmin = currentUserScopes.includes("OWNER") || 
+  const isOwnerOrAdmin = currentUserScopes.includes("OWNER") ||
     currentUserScopes.includes("WRITE_PROJECT") ||
     currentUserScopes.includes("MANAGE_MEMBERS");
-  
-  const canManageMembers = currentUserScopes.includes("OWNER") || 
+
+  const canManageMembers = currentUserScopes.includes("OWNER") ||
     currentUserScopes.includes("MANAGE_MEMBERS");
-  
-  const canManageBranches = currentUserScopes.includes("OWNER") || 
+
+  const canManageBranches = currentUserScopes.includes("OWNER") ||
     currentUserScopes.includes("WEITE_BRANCH");
 
   return (
@@ -100,21 +101,29 @@ export function ProjectOverview({
           <div className="flex items-center justify-between p-4 border-b border-[#1f1f1f]">
             <div className="flex items-center gap-2">
               <GitBranch className="w-4 h-4 text-[#6366f1]" />
-              <h2 className="text-sm font-medium text-white">Environments</h2>
+              <h2 className="text-sm font-medium text-white">Branches</h2>
             </div>
-            {canManageBranches && (
-              <button className="flex items-center gap-1.5 h-7 px-2.5 text-xs text-[#888888] hover:text-white hover:bg-[#1a1a1a] rounded-lg transition-colors">
-                <Plus className="w-3 h-3" />
-                Add
-              </button>
-            )}
+
+            <div className="flex space-x-2">
+              <Link href={`/projects/${project.id}/branches`} className="flex items-center gap-1.5 h-7 px-2.5 text-xs text-[#888888] hover:text-white hover:bg-[#1a1a1a] rounded-lg transition-colors">
+                <List className="w-3 h-3" />
+                List
+              </Link>
+              {canManageBranches && (
+                <button className="flex items-center gap-1.5 h-7 px-2.5 text-xs text-[#888888] hover:text-white hover:bg-[#1a1a1a] rounded-lg transition-colors" onClick={handleOpenNewBranchModal}>
+                  <Plus className="w-3 h-3" />
+                  Add
+                </button>
+              )}
+            </div>
+
           </div>
 
           <div className="divide-y divide-[#1f1f1f]">
             {branches.map((branch) => (
               <Link
                 key={branch.id}
-                href={`/projects/${project.id}/${branch.name}`}
+                href={`/projects/${project.id}/branches/${branch.id}`}
                 className="flex items-center justify-between p-4 hover:bg-[#0f0f0f] transition-colors group"
               >
                 <div className="flex items-center gap-3">
@@ -174,9 +183,9 @@ export function ProjectOverview({
                     <Shield className="w-3 h-3 text-[#6366f1]" />
                   )}
                   <span className="capitalize">
-                    {member.scopes.includes("OWNER") 
-                      ? "owner" 
-                      : member.scopes.length > 0 
+                    {member.scopes.includes("OWNER")
+                      ? "owner"
+                      : member.scopes.length > 0
                         ? `${member.scopes.length} permissions`
                         : "no permissions"}
                   </span>
@@ -228,6 +237,8 @@ export function ProjectOverview({
           </p>
         </Link>
       </div>
+
+      <NewBranchModal isOpen={isNewBranchModalOpen} onClose={handleCloseNewBranchModal} projectId={project.id} />
     </div>
   );
 }

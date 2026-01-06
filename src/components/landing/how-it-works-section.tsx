@@ -45,7 +45,7 @@ export default function HowItWorksSection() {
     {
       number: "03",
       title: "SDK を import & load",
-      description: "Node.js プロジェクトで SDK をインストールし、import して load するだけ。process.env に自動で環境変数が注入されます。",
+      description: "Node.js プロジェクトで SDK をインストールし、import して load するだけ。renv.get() で環境変数を取得できます。",
       visual: (
         <div className="bg-[#0a0a0a] rounded-xl border border-[#222222] p-4 font-mono text-xs">
           <div className="text-[#546e7a]"># インストール</div>

@@ -5,7 +5,6 @@ import { DashboardHeader } from "@/components/dashboard/header";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { NewProjectButton } from "@/components/dashboard/new-project-button";
-import { Plus } from "lucide-react";
 
 export default async function ProjectsPage() {
   const session = await auth.api.getSession({
