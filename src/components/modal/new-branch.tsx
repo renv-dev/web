@@ -12,16 +12,14 @@ interface NewbranchModalProps {
 
 export function NewBranchModal({ isOpen, onClose, projectId }: NewbranchModalProps) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [name, setName] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Reset form when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
       setName("");
-      setDescription("");
       setError(null);
     }
   }, [isOpen]);
@@ -53,7 +51,6 @@ export function NewBranchModal({ isOpen, onClose, projectId }: NewbranchModalPro
         },
         body: JSON.stringify({
           name: name.trim(),
-          description: description.trim() || null,
         }),
       });
 
@@ -119,22 +116,6 @@ export function NewBranchModal({ isOpen, onClose, projectId }: NewbranchModalPro
                 placeholder="my-awesome-branch"
                 className="w-full h-10 px-3 bg-[#141414] border border-[#1f1f1f] rounded-lg text-white placeholder-[#666666] focus:outline-none focus:border-[#6366f1] transition-colors"
                 autoFocus
-              />
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <label htmlFor="description" className="block text-sm font-medium text-[#e5e5e5]">
-                Description{" "}
-                <span className="text-[#666666] font-normal">(optional)</span>
-              </label>
-              <textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="A brief description of your branch"
-                rows={3}
-                className="w-full px-3 py-2 bg-[#141414] border border-[#1f1f1f] rounded-lg text-white placeholder-[#666666] focus:outline-none focus:border-[#6366f1] transition-colors resize-none"
               />
             </div>
           </div>
