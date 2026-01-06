@@ -14,9 +14,9 @@ const renv = new Renv(process.env.RENV_TOKEN);
 // これだけで環境変数がロードされる
 await renv.load();
 
-// process.env に自動注入される
-console.log(process.env.DATABASE_URL);
-console.log(process.env.API_SECRET);`,
+// renv.get() で環境変数を取得
+console.log(renv.get("DATABASE_URL"));
+console.log(renv.get("API_SECRET"));`,
   },
   express: {
     label: "Express",
@@ -30,8 +30,8 @@ const app = express();
 const renv = new Renv(process.env.RENV_TOKEN);
 await renv.load();
 
-app.listen(process.env.PORT, () => {
-  console.log(\`Server running on port \${process.env.PORT}\`);
+app.listen(renv.get("PORT"), () => {
+  console.log(\`Server running on port \${renv.get("PORT")}\`);
 });`,
   },
   nextjs: {
@@ -46,7 +46,7 @@ await renv.load();
 const nextConfig = {
   env: {
     // Renv でロードした値を使用
-    DATABASE_URL: process.env.DATABASE_URL,
+    DATABASE_URL: renv.get("DATABASE_URL"),
   },
 };
 
@@ -156,6 +156,7 @@ function highlightCode(line: string): string {
     .replace(/(import|from|export|default|const|await|new)/g, '<span class="text-[#c792ea]">$1</span>')
     .replace(/("@renv\/node"|"express"|"next\.config\.ts"|"server\.ts"|"app\.ts")/g, '<span class="text-[#c3e88d]">$1</span>')
     .replace(/(\/\/.*)/g, '<span class="text-[#546e7a]">$1</span>')
+    .replace(/(renv\.get\([^)]+\))/g, '<span class="text-[#82aaff]">$1</span>')
     .replace(/(process\.env\.\w+)/g, '<span class="text-[#82aaff]">$1</span>')
     .replace(/(console\.log|app\.listen)/g, '<span class="text-[#82aaff]">$1</span>')
     .replace(/(\`[^`]*\`)/g, '<span class="text-[#c3e88d]">$1</span>');
