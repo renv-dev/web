@@ -230,7 +230,7 @@ export function EnvDashboard({
                                 Import
                                 <input
                                     type="file"
-                                    accept=".env,.txt"
+                                    accept="text/*,.env,.env.*"
                                     onChange={handleImport}
                                     className="hidden"
                                 />
