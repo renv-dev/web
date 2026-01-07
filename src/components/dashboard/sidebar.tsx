@@ -5,8 +5,7 @@ import { Session, User } from "better-auth";
 import { signOut } from "@/lib/auth-client";
 import {
   FolderKanban,
-  Key,
-  Settings,
+  Building,
   LogOut,
   ChevronDown,
   HelpCircle,
@@ -29,15 +28,15 @@ export function DashboardSidebar({ session, user }: DashboardSidebarProps) {
       href: "/projects",
       icon: FolderKanban,
     },
+    // {
+    //   label: "API Keys",
+    //   href: "/keys",
+    //   icon: Key,
+    // },
     {
-      label: "API Keys",
-      href: "/keys",
-      icon: Key,
-    },
-    {
-      label: "Settings",
-      href: "/settings",
-      icon: Settings,
+      label: "Building",
+      href: "/building",
+      icon: Building,
     },
   ];
 
