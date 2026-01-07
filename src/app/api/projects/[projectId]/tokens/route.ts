@@ -53,7 +53,7 @@ const GET = (req: NextRequest, context: Context) => withAuth(req, async (_, auth
 // POST: Create a new token
 const POST = (req: NextRequest, context: Context) => withAuth(req, async (_, authCtx, ctx) => {
     if (!ctx) return errorResponse("Params not found", 400);
-    const { projectId } = await ctx.params;
+    const [{ projectId }, payload] = await Promise.all([ctx.params, req.json()]);
 
     if (authCtx.type === "session") {
         const userId = authCtx.session!.userId;
@@ -69,6 +69,17 @@ const POST = (req: NextRequest, context: Context) => withAuth(req, async (_, aut
             if (!user) return unauthorizedResponse();
             const member = user.members[0];
             if (!member) return forbiddenResponse("You are not a member of this project");
+            if (!hasScope(member.scopes, ["OWNER"])) return forbiddenResponse("You do not have permission to create tokens for this project");
+
+            // Validate and use provided scopes, default to READ_ENV
+            const validScopes = ["READ_ENV", "WRITE_ENV", "DELETE_ENV", "READ_PROJECT", "READ_BRANCH"] as const;
+            type TokenScope = typeof validScopes[number];
+            const requestedScopes = payload.scopes as string[] | undefined;
+            let tokenScopes: TokenScope[] = requestedScopes?.filter((s): s is TokenScope => validScopes.includes(s as TokenScope)) || ["READ_ENV"];
+            
+            if (tokenScopes.length === 0) {
+                tokenScopes = ["READ_ENV"];
+            }
 
             // Generate a secure token
             const tokenValue = `renv_${crypto.randomBytes(32).toString("hex")}`;
@@ -83,7 +94,7 @@ const POST = (req: NextRequest, context: Context) => withAuth(req, async (_, aut
                     userId,
                     projectId,
                     expiresAt,
-                    scopes: ["READ_ENV"],
+                    scopes: tokenScopes,
                 },
             });
 

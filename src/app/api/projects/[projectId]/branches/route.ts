@@ -12,6 +12,9 @@ const GET = (req: NextRequest, ctx: Context) => withAuth(req, async (req, authCt
     const params = await ctx.params;
     const projectId = params.projectId;
 
+    const searchParams = req.nextUrl.searchParams;
+    const name = searchParams.get("name");
+
     if (authCtx.type === "session") {
         const userId = authCtx.session!.userId;
 
@@ -42,7 +45,7 @@ const GET = (req: NextRequest, ctx: Context) => withAuth(req, async (req, authCt
 
     try {
         const project = await prisma.project.findUnique({
-            where: { id: projectId },
+            where: { id: projectId, ...(name ? { name: name } : {}) },
         });
         return successResponse(project, "Project fetched successfully");
     } catch (error) {
