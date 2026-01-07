@@ -44,10 +44,10 @@ const GET = (req: NextRequest, ctx: Context) => withAuth(req, async (req, authCt
     }
 
     try {
-        const project = await prisma.project.findUnique({
-            where: { id: projectId, ...(name ? { name: name } : {}) },
+        const branches = await prisma.branch.findMany({
+            where: { projectId, ...(name ? { name: name } : {}) },
         });
-        return successResponse(project, "Project fetched successfully");
+        return successResponse({ branches }, "Project fetched successfully");
     } catch (error) {
         console.error("Error fetching project:", error);
         return errorResponse("Failed to fetch project", 500);
