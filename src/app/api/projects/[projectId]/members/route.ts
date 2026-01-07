@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { scopes } from "@prisma/client";
 import { withAuth } from "@/lib/middleware";
 import { prisma } from "@/lib/prisma";
 import { successResponse, errorResponse } from "@/lib/helpers/response";
@@ -154,7 +155,7 @@ const POST = (req: NextRequest, ctx: Context) => withAuth(req, async (req, authC
             data: {
                 projectId,
                 userId: userToInvite.id,
-                scopes: memberScopes,
+                scopes: memberScopes as scopes[],
             },
             include: {
                 user: {
