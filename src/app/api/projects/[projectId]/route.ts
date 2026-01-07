@@ -47,8 +47,8 @@ const GET = (req: NextRequest, context: Context) => withAuth(req, async (_, auth
         const project = await prisma.project.findUnique({
             where: { id: projectId },
             include: {
-                members: includeMember === "true" ? true : false,
-                branches: includeBranch === "true" ? true : false,
+                members: includeMember === "true",
+                branches: includeBranch === "true",
             }
         });
         return successResponse(project, "Project fetched successfully");
