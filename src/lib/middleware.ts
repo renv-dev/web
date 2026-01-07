@@ -6,8 +6,7 @@ import { prisma } from "./prisma";
 import { unauthorizedResponse } from "./helpers/response";
 
 interface Context {
-    params: Promise<{ [key: string]: string }>;
-    searchParams?: Promise<{ [key: string]: string | undefined }>;
+    params: Promise<Record<string, string>>;
 }
 
 interface AuthContext {
