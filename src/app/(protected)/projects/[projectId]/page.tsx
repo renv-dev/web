@@ -60,7 +60,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   // Get the current user's role in this project
   const currentMember = project.members.find(
-    (m) => m.userId === session.session.userId
+    (m: { userId: string }) => m.userId === session.session.userId
   );
 
   return (
