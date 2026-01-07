@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/middleware";
 import { successResponse, unauthorizedResponse, forbiddenResponse, errorResponse } from "@/lib/helpers/response";
 
-type BooleanString = "true" | "false";
+type BooleanString = "true" | "false" | string;
 interface Context {
     params: Promise<{ projectId: string }>;
 }
