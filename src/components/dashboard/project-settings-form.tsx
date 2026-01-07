@@ -273,6 +273,21 @@ function GeneralSettings({
     );
 }
 
+// Available scopes for members
+const MEMBER_SCOPES: { id: scopes; label: string; description: string }[] = [
+    { id: "READ_ENV", label: "Read Environment", description: "Read environment variables" },
+    { id: "WRITE_ENV", label: "Write Environment", description: "Create and update environment variables" },
+    { id: "DELETE_ENV", label: "Delete Environment", description: "Delete environment variables" },
+    { id: "READ_PROJECT", label: "Read Project", description: "Read project information" },
+    { id: "WRITE_PROJECT", label: "Write Project", description: "Update project settings" },
+    { id: "DELETE_PROJECT", label: "Delete Project", description: "Delete the project" },
+    { id: "READ_BRANCH", label: "Read Branch", description: "Read branch information" },
+    { id: "WRITE_BRANCH", label: "Write Branch", description: "Create and update branches" },
+    { id: "DELETE_BRANCH", label: "Delete Branch", description: "Delete branches" },
+    { id: "MANAGE_MEMBERS", label: "Manage Members", description: "Add and remove team members" },
+    { id: "MANAGE_BILLING", label: "Manage Billing", description: "Manage billing and payments" },
+] as const;
+
 // Members Settings Tab
 function MembersSettings({
     projectId,
@@ -291,6 +306,33 @@ function MembersSettings({
     const [isInviting, setIsInviting] = useState(false);
     const [inviteEmail, setInviteEmail] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedScopes, setSelectedScopes] = useState<Set<string>>(new Set(["READ_ENV", "READ_PROJECT", "READ_BRANCH"]));
+    const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+    const [editingScopes, setEditingScopes] = useState<Set<string>>(new Set());
+
+    const toggleScope = (scopeId: string) => {
+        setSelectedScopes((prev) => {
+            const next = new Set(prev);
+            if (next.has(scopeId)) {
+                next.delete(scopeId);
+            } else {
+                next.add(scopeId);
+            }
+            return next;
+        });
+    };
+
+    const toggleEditingScope = (scopeId: string) => {
+        setEditingScopes((prev) => {
+            const next = new Set(prev);
+            if (next.has(scopeId)) {
+                next.delete(scopeId);
+            } else {
+                next.add(scopeId);
+            }
+            return next;
+        });
+    };
 
     const handleInvite = async () => {
         if (!inviteEmail.trim()) return;
@@ -300,7 +342,10 @@ function MembersSettings({
             const response = await fetch(`/api/projects/${projectId}/members`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: inviteEmail }),
+                body: JSON.stringify({ 
+                    email: inviteEmail,
+                    scopes: Array.from(selectedScopes),
+                }),
             });
 
             if (!response.ok) {
@@ -310,6 +355,7 @@ function MembersSettings({
 
             toast.success("Member invited successfully");
             setInviteEmail("");
+            setSelectedScopes(new Set(["READ_ENV", "READ_PROJECT", "READ_BRANCH"]));
             setIsInviting(false);
             router.refresh();
         } catch (error) {
@@ -337,6 +383,32 @@ function MembersSettings({
         }
     };
 
+    const handleUpdateMemberScopes = async (memberId: string) => {
+        try {
+            const response = await fetch(`/api/projects/${projectId}/members/${memberId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ scopes: Array.from(editingScopes) }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || "Failed to update member permissions");
+            }
+
+            toast.success("Member permissions updated");
+            setEditingMemberId(null);
+            router.refresh();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Failed to update member permissions");
+        }
+    };
+
+    const startEditingMember = (member: Member) => {
+        setEditingMemberId(member.id);
+        setEditingScopes(new Set(member.scopes));
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -357,7 +429,7 @@ function MembersSettings({
 
             {/* Invite Form */}
             {isInviting && (
-                <div className="p-4 bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl mt-8 mb-4">
+                <div className="p-4 bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl mt-8 mb-4 space-y-4">
                     <div className="flex items-center gap-3">
                         <input
                             type="email"
@@ -368,20 +440,56 @@ function MembersSettings({
                             autoFocus
                         />
                         <button
-                            onClick={handleInvite}
-                            disabled={isSubmitting || !inviteEmail.trim()}
-                            className="h-10 px-4 text-sm text-white bg-[#6366f1] hover:bg-[#5558e3] rounded-lg transition-colors disabled:opacity-50"
-                        >
-                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Invite"}
-                        </button>
-                        <button
                             onClick={() => {
                                 setIsInviting(false);
                                 setInviteEmail("");
+                                setSelectedScopes(new Set(["READ_ENV", "READ_PROJECT", "READ_BRANCH"]));
                             }}
                             className="h-10 px-3 text-[#888888] hover:text-white transition-colors"
                         >
                             <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {/* Scopes Selection */}
+                    <div>
+                        <label className="block text-sm font-medium text-white mb-3">
+                            <Shield className="w-4 h-4 inline-block mr-2" />
+                            Member Permissions
+                        </label>
+                        <div className="grid gap-2 max-h-64 overflow-y-auto">
+                            {MEMBER_SCOPES.map((scope) => (
+                                <label
+                                    key={scope.id}
+                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                        selectedScopes.has(scope.id)
+                                            ? "bg-[#6366f1]/10 border-[#6366f1]/50"
+                                            : "bg-[#141414] border-[#1f1f1f] hover:border-[#333333]"
+                                    }`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedScopes.has(scope.id)}
+                                        onChange={() => toggleScope(scope.id)}
+                                        className="w-4 h-4 rounded border-[#333333] bg-[#0a0a0a] text-[#6366f1] focus:ring-[#6366f1] focus:ring-offset-0"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-white">{scope.label}</div>
+                                        <div className="text-xs text-[#666666]">{scope.description}</div>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                        <button
+                            onClick={handleInvite}
+                            disabled={isSubmitting || !inviteEmail.trim()}
+                            className="h-10 px-4 text-sm text-white bg-[#6366f1] hover:bg-[#5558e3] rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                            Send Invite
                         </button>
                     </div>
                 </div>
@@ -393,49 +501,123 @@ function MembersSettings({
                     {members.map((member) => {
                         const isOwnerMember = member.userId === ownerId;
                         const isCurrentUser = member.userId === currentUserId;
+                        const isEditing = editingMemberId === member.id;
 
                         return (
-                            <div key={member.id} className="flex items-center justify-between p-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6366f1] to-[#a855f7] flex items-center justify-center text-white text-sm font-medium">
-                                        {member.user.name?.charAt(0)?.toUpperCase() ||
-                                            member.user.email.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm font-medium text-white">
-                                                {member.user.name || member.user.email.split("@")[0]}
-                                            </span>
-                                            {isCurrentUser && (
-                                                <span className="px-1.5 py-0.5 text-xs bg-[#1f1f1f] rounded text-[#888888]">
-                                                    You
-                                                </span>
-                                            )}
+                            <div key={member.id} className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6366f1] to-[#a855f7] flex items-center justify-center text-white text-sm font-medium">
+                                            {member.user.name?.charAt(0)?.toUpperCase() ||
+                                                member.user.email.charAt(0).toUpperCase()}
                                         </div>
-                                        <span className="text-xs text-[#666666]">{member.user.email}</span>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-medium text-white">
+                                                    {member.user.name || member.user.email.split("@")[0]}
+                                                </span>
+                                                {isCurrentUser && (
+                                                    <span className="px-1.5 py-0.5 text-xs bg-[#1f1f1f] rounded text-[#888888]">
+                                                        You
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className="text-xs text-[#666666]">{member.user.email}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-[#141414] rounded text-xs text-[#888888]">
+                                            {isOwnerMember && <Shield className="w-3 h-3 text-[#6366f1]" />}
+                                            <span>
+                                                {isOwnerMember
+                                                    ? "Owner"
+                                                    : member.scopes.length > 0
+                                                    ? `${member.scopes.length} permissions`
+                                                    : "No permissions"}
+                                            </span>
+                                        </div>
+                                        {canManage && !isOwnerMember && !isCurrentUser && (
+                                            <>
+                                                <button
+                                                    onClick={() => isEditing ? setEditingMemberId(null) : startEditingMember(member)}
+                                                    className="p-2 text-[#888888] hover:text-[#6366f1] transition-colors"
+                                                    title="Edit permissions"
+                                                >
+                                                    <Settings className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRemoveMember(member.id)}
+                                                    className="p-2 text-[#888888] hover:text-red-500 transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-[#141414] rounded text-xs text-[#888888]">
-                                        {isOwnerMember && <Shield className="w-3 h-3 text-[#6366f1]" />}
-                                        <span>
-                                            {isOwnerMember
-                                                ? "Owner"
-                                                : member.scopes.length > 0
-                                                ? `${member.scopes.length} permissions`
-                                                : "No permissions"}
-                                        </span>
+                                {/* Scopes Display */}
+                                {!isEditing && member.scopes.length > 0 && !isOwnerMember && (
+                                    <div className="flex flex-wrap gap-1 mt-3 ml-13">
+                                        {member.scopes.map((scope) => (
+                                            <span
+                                                key={scope}
+                                                className="px-2 py-0.5 text-xs bg-[#141414] border border-[#1f1f1f] rounded text-[#888888]"
+                                            >
+                                                {scope.replace(/_/g, " ")}
+                                            </span>
+                                        ))}
                                     </div>
-                                    {canManage && !isOwnerMember && !isCurrentUser && (
-                                        <button
-                                            onClick={() => handleRemoveMember(member.id)}
-                                            className="p-2 text-[#888888] hover:text-red-500 transition-colors"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
+                                )}
+
+                                {/* Edit Scopes Form */}
+                                {isEditing && (
+                                    <div className="mt-4 p-4 bg-[#141414] rounded-lg border border-[#1f1f1f]">
+                                        <label className="block text-sm font-medium text-white mb-3">
+                                            <Shield className="w-4 h-4 inline-block mr-2" />
+                                            Edit Permissions
+                                        </label>
+                                        <div className="grid gap-2 max-h-64 overflow-y-auto">
+                                            {MEMBER_SCOPES.map((scope) => (
+                                                <label
+                                                    key={scope.id}
+                                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                                        editingScopes.has(scope.id)
+                                                            ? "bg-[#6366f1]/10 border-[#6366f1]/50"
+                                                            : "bg-[#0a0a0a] border-[#1f1f1f] hover:border-[#333333]"
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={editingScopes.has(scope.id)}
+                                                        onChange={() => toggleEditingScope(scope.id)}
+                                                        className="w-4 h-4 rounded border-[#333333] bg-[#0a0a0a] text-[#6366f1] focus:ring-[#6366f1] focus:ring-offset-0"
+                                                    />
+                                                    <div className="flex-1">
+                                                        <div className="text-sm font-medium text-white">{scope.label}</div>
+                                                        <div className="text-xs text-[#666666]">{scope.description}</div>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-4">
+                                            <button
+                                                onClick={() => setEditingMemberId(null)}
+                                                className="h-9 px-4 text-sm text-[#888888] hover:text-white transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={() => handleUpdateMemberScopes(member.id)}
+                                                className="h-9 px-4 text-sm text-white bg-[#6366f1] hover:bg-[#5558e3] rounded-lg transition-colors flex items-center gap-2"
+                                            >
+                                                <Check className="w-4 h-4" />
+                                                Save
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
