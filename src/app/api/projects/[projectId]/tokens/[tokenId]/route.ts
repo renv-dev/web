@@ -1,10 +1,9 @@
-import { headers } from "next/headers";
 import { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
+import { withAuth } from "@/lib/middleware";
 import { prisma } from "@/lib/prisma";
-import { successResponse, errorResponse } from "@/lib/helpers/response";
+import { successResponse, errorResponse, unauthorizedResponse, forbiddenResponse } from "@/lib/helpers/response";
 
-interface RouteParams {
+interface Context {
     params: Promise<{
         projectId: string;
         tokenId: string;
@@ -12,45 +11,51 @@ interface RouteParams {
 }
 
 // DELETE: Delete a token
-export async function DELETE(req: NextRequest, { params }: RouteParams) {
-    const [{ projectId, tokenId }, session] = await Promise.all([
-        params,
-        auth.api.getSession({
-            headers: await headers(),
-        }),
-    ]);
+const DELETE = (req: NextRequest, context: Context) => withAuth(req, async (_, authCtx, ctx) => {
+    if (!ctx) return errorResponse("Params not found", 400);
+    const { projectId, tokenId } = await ctx.params;
 
-    if (!session?.session) {
-        return errorResponse("Unauthorized", 401);
+    if (authCtx.type === "session") {
+        const userId = authCtx.session!.userId;
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                include: {
+                    members: {
+                        where: { projectId },
+                    },
+                },
+            });
+            if (!user) return unauthorizedResponse();
+            const member = user.members[0];
+            if (!member) return forbiddenResponse("You are not a member of this project");
+
+            // Find the token
+            const token = await prisma.token.findFirst({
+                where: {
+                    id: tokenId,
+                    projectId,
+                },
+            });
+
+            if (!token) {
+                return errorResponse("Token not found", 404);
+            }
+
+            await prisma.token.delete({
+                where: { id: tokenId },
+            });
+
+            return successResponse({ message: "Token deleted" });
+        } catch (error) {
+            console.error("Error deleting token:", error);
+            return errorResponse("Failed to delete token", 500);
+        }
+    } else if (authCtx.type === "token") {
+        return forbiddenResponse("Cannot delete tokens with an API token");
     }
 
-    // Check membership
-    const member = await prisma.member.findFirst({
-        where: {
-            userId: session.session.userId,
-            projectId,
-        },
-    });
+    return errorResponse("Invalid authentication context", 400);
+}, context);
 
-    if (!member) {
-        return errorResponse("Project not found", 404);
-    }
-
-    // Find the token
-    const token = await prisma.token.findFirst({
-        where: {
-            id: tokenId,
-            projectId,
-        },
-    });
-
-    if (!token) {
-        return errorResponse("Token not found", 404);
-    }
-
-    await prisma.token.delete({
-        where: { id: tokenId },
-    });
-
-    return successResponse({ message: "Token deleted" });
-}
+export { DELETE };
