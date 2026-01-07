@@ -3,15 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/middleware";
 import { successResponse, unauthorizedResponse, forbiddenResponse, errorResponse } from "@/lib/helpers/response";
 
-type BooleanString = "true" | "false";
+type BooleanString = "true" | "false" | string;
 interface Context {
     params: Promise<{ projectId: string }>;
-    searchParams: Promise<{ member?: BooleanString, branch?: BooleanString }>;
 }
 
-const GET = (req: NextRequest, context: Context) => withAuth(req, async (session, authCtx, ctx) => {
+const GET = (req: NextRequest, context: Context) => withAuth(req, async (_, authCtx, ctx) => {
     if (!ctx) return errorResponse("Params not found", 400);
-    const [params, searchParams] = await Promise.all([ctx.params, ctx.searchParams]);
+    const params = await ctx.params;
+    const searchParams = new URL(req.url).searchParams;
+    const includeMember = searchParams.get("member") as BooleanString | null;
+    const includeBranch = searchParams.get("branch") as BooleanString | null;
     const projectId = params.projectId;
 
     if (authCtx.type === "session") {
@@ -45,8 +47,8 @@ const GET = (req: NextRequest, context: Context) => withAuth(req, async (session
         const project = await prisma.project.findUnique({
             where: { id: projectId },
             include: {
-                members: searchParams!.member === "true" ? true : false,
-                branches: searchParams!.branch === "true" ? true : false,
+                members: includeMember === "true",
+                branches: includeBranch === "true",
             }
         });
         return successResponse(project, "Project fetched successfully");
@@ -152,7 +154,7 @@ const PATCH = (req: NextRequest, context: Context) => withAuth(req, async (req, 
     }
 }, context as Context);
 
-const DELETE = (req: NextRequest, context: Context) => withAuth(req, async (req, authCtx, ctx) => {
+const DELETE = (req: NextRequest, context: Context) => withAuth(req, async (_, authCtx, ctx) => {
     if (!ctx) return errorResponse("Params not found", 400);
     const params = await ctx.params;
     const projectId = params.projectId;
