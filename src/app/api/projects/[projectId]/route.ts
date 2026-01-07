@@ -3,18 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/middleware";
 import { successResponse, unauthorizedResponse, forbiddenResponse, errorResponse } from "@/lib/helpers/response";
 
-type BooleanString = "true" | "false" | string;
 interface Context {
     params: Promise<{ projectId: string }>;
 }
 
-const GET = (req: NextRequest, context: Context) => withAuth(req, async (_, authCtx, ctx) => {
+const GET = (req: NextRequest, context: Context) => withAuth(req, async (req, authCtx, ctx) => {
     if (!ctx) return errorResponse("Params not found", 400);
     const params = await ctx.params;
-    const searchParams = new URL(req.url).searchParams;
-    const includeMember = searchParams.get("member") as BooleanString | null;
-    const includeBranch = searchParams.get("branch") as BooleanString | null;
     const projectId = params.projectId;
+    const searchParams = new URL(req.url).searchParams;
+    const includeMember = searchParams.get("member") === "true";
+    const includeBranch = searchParams.get("branch") === "true";
 
     if (authCtx.type === "session") {
         const userId = authCtx.session!.userId;
@@ -23,7 +22,7 @@ const GET = (req: NextRequest, context: Context) => withAuth(req, async (_, auth
                 where: { id: userId },
                 include: {
                     members: {
-                        where: { projectId: (await ctx.params).id },
+                        where: { projectId },
                     },
                 },
             });
@@ -47,8 +46,8 @@ const GET = (req: NextRequest, context: Context) => withAuth(req, async (_, auth
         const project = await prisma.project.findUnique({
             where: { id: projectId },
             include: {
-                members: includeMember === "true",
-                branches: includeBranch === "true",
+                members: includeMember,
+                branches: includeBranch,
             }
         });
         return successResponse(project, "Project fetched successfully");
@@ -56,7 +55,7 @@ const GET = (req: NextRequest, context: Context) => withAuth(req, async (_, auth
         console.error("Error fetching project:", error);
         return errorResponse("Failed to fetch project", 500);
     }
-}, context as Context);
+}, context);
 
 const PUT = (req: NextRequest, context: Context) => withAuth(req, async (req, authCtx, ctx) => {
     if (!ctx) return errorResponse("Params not found", 400);
@@ -104,7 +103,7 @@ const PUT = (req: NextRequest, context: Context) => withAuth(req, async (req, au
         console.error("Error updating project:", error);
         return errorResponse("Failed to update project", 500);
     }
-}, context as Context);
+}, context);
 
 const PATCH = (req: NextRequest, context: Context) => withAuth(req, async (req, authCtx, ctx) => {
     if (!ctx) return errorResponse("Params not found", 400);
@@ -152,7 +151,7 @@ const PATCH = (req: NextRequest, context: Context) => withAuth(req, async (req, 
         console.error("Error updating project:", error);
         return errorResponse("Failed to update project", 500);
     }
-}, context as Context);
+}, context);
 
 const DELETE = (req: NextRequest, context: Context) => withAuth(req, async (_, authCtx, ctx) => {
     if (!ctx) return errorResponse("Params not found", 400);
@@ -195,6 +194,6 @@ const DELETE = (req: NextRequest, context: Context) => withAuth(req, async (_, a
         console.error("Error deleting project:", error);
         return errorResponse("Failed to delete project", 500);
     }
-}, context as Context);
+}, context);
 
 export { GET, PUT, PATCH, DELETE };

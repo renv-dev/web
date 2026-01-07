@@ -1,10 +1,10 @@
-import { headers } from "next/headers";
 import { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
+import { withAuth } from "@/lib/middleware";
 import { prisma } from "@/lib/prisma";
-import { successResponse, errorResponse } from "@/lib/helpers/response";
+import { successResponse, errorResponse, unauthorizedResponse, forbiddenResponse } from "@/lib/helpers/response";
+import { hasScope } from "@/lib/utils/is";
 
-interface RouteParams {
+interface Context {
     params: Promise<{
         projectId: string;
         branchId: string;
@@ -12,71 +12,79 @@ interface RouteParams {
 }
 
 // GET: List all environment variables
-export async function GET(req: NextRequest, { params }: RouteParams) {
-    const [{ projectId, branchId }, session] = await Promise.all([
-        params,
-        auth.api.getSession({
-            headers: await headers(),
-        }),
-    ]);
+const GET = (req: NextRequest, context: Context) => withAuth(req, async (_, authCtx, ctx) => {
+    if (!ctx) return errorResponse("Params not found", 400);
+    const { projectId, branchId } = await ctx.params;
 
-    if (!session?.session) {
-        return errorResponse("Unauthorized", 401);
+    if (authCtx.type === "session") {
+        const userId = authCtx.session!.userId;
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                include: {
+                    members: {
+                        where: { projectId },
+                    },
+                },
+            });
+            if (!user) return unauthorizedResponse();
+            const member = user.members[0];
+            if (!member) return forbiddenResponse("You are not a member of this project");
+            const canRead = hasScope(member.scopes, ["OWNER", "READ_ENV"]);
+            if (!canRead) return forbiddenResponse("You do not have permission to read environment variables");
+        } catch (error) {
+            console.error("Error checking project access:", error);
+            return errorResponse("Failed to verify project access", 500);
+        }
+    } else if (authCtx.type === "token") {
+        const token = authCtx.apiToken!;
+        if (token.projectId !== projectId) return forbiddenResponse("API token does not have access to this project");
+        const canRead = hasScope(token.scopes, ["OWNER", "READ_ENV"]);
+        if (!canRead) return forbiddenResponse("API token does not have permission to read environment variables");
     }
 
-    // Check membership and permissions
-    const member = await prisma.member.findFirst({
-        where: {
-            userId: session.session.userId,
-            projectId,
-        },
-    });
-
-    if (!member) {
-        return errorResponse("Project not found", 404);
+    try {
+        const envs = await prisma.env.findMany({
+            where: { branchId },
+            orderBy: { key: "asc" },
+        });
+        return successResponse(envs);
+    } catch (error) {
+        console.error("Error fetching environment variables:", error);
+        return errorResponse("Failed to fetch environment variables", 500);
     }
-
-    const canRead = member.scopes.includes("OWNER") || member.scopes.includes("READ_ENV");
-    if (!canRead) {
-        return errorResponse("Permission denied", 403);
-    }
-
-    const envs = await prisma.env.findMany({
-        where: { branchId },
-        orderBy: { key: "asc" },
-    });
-
-    return successResponse(envs);
-}
+}, context);
 
 // POST: Create a new environment variable
-export async function POST(req: NextRequest, { params }: RouteParams) {
-    const [{ projectId, branchId }, session] = await Promise.all([
-        params,
-        auth.api.getSession({
-            headers: await headers(),
-        }),
-    ]);
+const POST = (req: NextRequest, context: Context) => withAuth(req, async (req, authCtx, ctx) => {
+    if (!ctx) return errorResponse("Params not found", 400);
+    const { projectId, branchId } = await ctx.params;
 
-    if (!session?.session) {
-        return errorResponse("Unauthorized", 401);
-    }
-
-    // Check membership and permissions
-    const member = await prisma.member.findFirst({
-        where: {
-            userId: session.session.userId,
-            projectId,
-        },
-    });
-
-    if (!member) {
-        return errorResponse("Project not found", 404);
-    }
-
-    const canWrite = member.scopes.includes("OWNER") || member.scopes.includes("WRITE_ENV");
-    if (!canWrite) {
-        return errorResponse("Permission denied", 403);
+    if (authCtx.type === "session") {
+        const userId = authCtx.session!.userId;
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                include: {
+                    members: {
+                        where: { projectId },
+                    },
+                },
+            });
+            if (!user) return unauthorizedResponse();
+            const member = user.members[0];
+            if (!member) return forbiddenResponse("You are not a member of this project");
+            const canWrite = hasScope(member.scopes, ["OWNER", "WRITE_ENV"]);
+            if (!canWrite) return forbiddenResponse("You do not have permission to write environment variables");
+        } catch (error) {
+            console.error("Error checking project access:", error);
+            return errorResponse("Failed to verify project access", 500);
+        }
+    } else if (authCtx.type === "token") {
+        const token = authCtx.apiToken!;
+        if (token.projectId !== projectId) return forbiddenResponse("API token does not have access to this project");
+        const canWrite = hasScope(token.scopes, ["OWNER", "WRITE_ENV"]);
+        if (!canWrite) return forbiddenResponse("API token does not have permission to write environment variables");
     }
 
     // Verify branch exists and belongs to project
@@ -109,13 +117,19 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         return errorResponse("Environment variable with this key already exists", 409);
     }
 
-    const env = await prisma.env.create({
-        data: {
-            key,
-            value: value || "",
-            branchId,
-        },
-    });
+    try {
+        const env = await prisma.env.create({
+            data: {
+                key,
+                value: value || "",
+                branchId,
+            },
+        });
+        return successResponse(env, "Created", 201);
+    } catch (error) {
+        console.error("Error creating environment variable:", error);
+        return errorResponse("Failed to create environment variable", 500);
+    }
+}, context);
 
-    return successResponse(env, "Created", 201);
-}
+export { GET, POST };
