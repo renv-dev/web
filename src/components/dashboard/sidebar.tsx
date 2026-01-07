@@ -5,7 +5,7 @@ import { Session, User } from "better-auth";
 import { signOut } from "@/lib/auth-client";
 import {
   FolderKanban,
-  Building,
+  Wallet,
   LogOut,
   ChevronDown,
   HelpCircle,
@@ -36,7 +36,7 @@ export function DashboardSidebar({ session, user }: DashboardSidebarProps) {
     {
       label: "Building",
       href: "/building",
-      icon: Building,
+      icon: Wallet,
     },
   ];
 
