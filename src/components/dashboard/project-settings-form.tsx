@@ -445,6 +445,15 @@ function MembersSettings({
     );
 }
 
+// Available scopes for tokens
+const TOKEN_SCOPES = [
+    { id: "READ_ENV", label: "Read Environment", description: "Read environment variables" },
+    { id: "WRITE_ENV", label: "Write Environment", description: "Create and update environment variables" },
+    { id: "DELETE_ENV", label: "Delete Environment", description: "Delete environment variables" },
+    { id: "READ_PROJECT", label: "Read Project", description: "Read project information" },
+    { id: "READ_BRANCH", label: "Read Branch", description: "Read branch information" },
+] as const;
+
 // Tokens Settings Tab
 function TokensSettings({
     projectId,
@@ -458,16 +467,25 @@ function TokensSettings({
     const [isCreating, setIsCreating] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [newTokenName, setNewTokenName] = useState("");
+    const [selectedScopes, setSelectedScopes] = useState<Set<string>>(new Set(["READ_ENV"]));
     const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
     const handleCreateToken = async () => {
+        if (selectedScopes.size === 0) {
+            toast.error("Please select at least one scope");
+            return;
+        }
+        
         setIsSubmitting(true);
         try {
             const response = await fetch(`/api/projects/${projectId}/tokens`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: newTokenName }),
+                body: JSON.stringify({ 
+                    name: newTokenName,
+                    scopes: Array.from(selectedScopes),
+                }),
             });
 
             if (!response.ok) {
@@ -478,6 +496,7 @@ function TokensSettings({
             const result = await response.json();
             toast.success("Token created successfully");
             setNewTokenName("");
+            setSelectedScopes(new Set(["READ_ENV"]));
             setIsCreating(false);
             router.refresh();
             // Show the new token
@@ -487,6 +506,18 @@ function TokensSettings({
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const toggleScope = (scopeId: string) => {
+        setSelectedScopes((prev) => {
+            const next = new Set(prev);
+            if (next.has(scopeId)) {
+                next.delete(scopeId);
+            } else {
+                next.add(scopeId);
+            }
+            return next;
+        });
     };
 
     const handleDeleteToken = async (tokenId: string) => {
@@ -544,7 +575,7 @@ function TokensSettings({
 
             {/* Create Token Form */}
             {isCreating && (
-                <div className="p-4 bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl mt-8">
+                <div className="p-4 bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl mt-8 space-y-4">
                     <div className="flex items-center gap-3">
                         <input
                             type="text"
@@ -555,20 +586,56 @@ function TokensSettings({
                             autoFocus
                         />
                         <button
-                            onClick={handleCreateToken}
-                            disabled={isSubmitting}
-                            className="h-10 px-4 text-sm text-white bg-[#6366f1] hover:bg-[#5558e3] rounded-lg transition-colors disabled:opacity-50"
-                        >
-                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create"}
-                        </button>
-                        <button
                             onClick={() => {
                                 setIsCreating(false);
                                 setNewTokenName("");
+                                setSelectedScopes(new Set(["READ_ENV"]));
                             }}
                             className="h-10 px-3 text-[#888888] hover:text-white transition-colors"
                         >
                             <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                    
+                    {/* Scopes Selection */}
+                    <div>
+                        <label className="block text-sm font-medium text-white mb-3">
+                            <Shield className="w-4 h-4 inline-block mr-2" />
+                            Token Permissions
+                        </label>
+                        <div className="grid gap-2">
+                            {TOKEN_SCOPES.map((scope) => (
+                                <label
+                                    key={scope.id}
+                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                        selectedScopes.has(scope.id)
+                                            ? "bg-[#6366f1]/10 border-[#6366f1]/50"
+                                            : "bg-[#141414] border-[#1f1f1f] hover:border-[#333333]"
+                                    }`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedScopes.has(scope.id)}
+                                        onChange={() => toggleScope(scope.id)}
+                                        className="w-4 h-4 rounded border-[#333333] bg-[#0a0a0a] text-[#6366f1] focus:ring-[#6366f1] focus:ring-offset-0"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium text-white">{scope.label}</div>
+                                        <div className="text-xs text-[#666666]">{scope.description}</div>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    <div className="flex justify-end pt-2">
+                        <button
+                            onClick={handleCreateToken}
+                            disabled={isSubmitting || selectedScopes.size === 0}
+                            className="h-10 px-4 text-sm text-white bg-[#6366f1] hover:bg-[#5558e3] rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                            Create Token
                         </button>
                     </div>
                 </div>
@@ -627,7 +694,7 @@ function TokensSettings({
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4 text-xs text-[#666666]">
+                                    <div className="flex items-center gap-4 text-xs text-[#666666] flex-wrap">
                                         <span>
                                             Created{" "}
                                             {new Date(token.createdAt).toLocaleDateString("en-US", {
@@ -644,7 +711,23 @@ function TokensSettings({
                                                 year: "numeric",
                                             })}
                                         </span>
+                                        <span className="flex items-center gap-1">
+                                            <Shield className="w-3 h-3" />
+                                            {token.scopes.length} permission{token.scopes.length !== 1 ? "s" : ""}
+                                        </span>
                                     </div>
+                                    {token.scopes.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-2">
+                                            {token.scopes.map((scope) => (
+                                                <span
+                                                    key={scope}
+                                                    className="px-2 py-0.5 text-xs bg-[#141414] border border-[#1f1f1f] rounded text-[#888888]"
+                                                >
+                                                    {scope.replace(/_/g, " ")}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
