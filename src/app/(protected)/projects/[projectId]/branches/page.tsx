@@ -62,7 +62,7 @@ export default async function ProjectBranchesPage({ params }: ProjectPageProps) 
     const currentMember = project.members[0];
     const canManageBranches =
         currentMember?.scopes.includes("OWNER") ||
-        currentMember?.scopes.includes("WEITE_BRANCH");
+        currentMember?.scopes.includes("WRITE_BRANCH");
 
     // メインブランチを先頭に並べ替え
     const sortedBranches = [...project.branches].sort((a, b) => {

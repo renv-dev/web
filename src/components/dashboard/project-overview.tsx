@@ -67,7 +67,7 @@ export function ProjectOverview({
     currentUserScopes.includes("MANAGE_MEMBERS");
 
   const canManageBranches = currentUserScopes.includes("OWNER") ||
-    currentUserScopes.includes("WEITE_BRANCH");
+    currentUserScopes.includes("WRITE_BRANCH");
 
   return (
     <div className="space-y-8">
