@@ -27,7 +27,7 @@ enum scopes {
 
   // branch
   READ_BRANCH
-  WEITE_BRANCH
+  WRITE_BRANCH
   DELETE_BRANCH
 
   // member
