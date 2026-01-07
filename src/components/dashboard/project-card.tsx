@@ -59,9 +59,16 @@ export function ProjectCard({ project }: ProjectCardProps) {
   };
 
   const handleDelete = async () => {
-    toast.error("Delete functionality not implemented yet", {
-      description: "This feature is coming soon.",
+    const response = await fetch(`/api/projects/${project.id}`, {
+      method: "DELETE",
     });
+    if (response.ok) {
+      toast.success("Project deleted successfully");
+      router.refresh();
+    } else {
+      const data = await response.json();
+      toast.error(data.message || "Failed to delete project");
+    }
   };
 
   return (
