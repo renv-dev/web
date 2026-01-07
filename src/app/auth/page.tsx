@@ -1,9 +1,8 @@
 "use client";
-
 import { useState } from "react";
-import Link from "next/link";
-import { signIn, signUp } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { signIn, signUp } from "@/lib/auth-client";
+import Link from "next/link";
 
 type AuthMode = "signin" | "signup";
 
