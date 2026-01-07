@@ -100,10 +100,32 @@ const POST = (req: NextRequest, ctx: Context) => withAuth(req, async (req, authC
 
     try {
         const body = await req.json();
-        const { email } = body;
+        const { email, scopes: requestedScopes } = body;
 
         if (!email || typeof email !== "string") {
             return errorResponse("Email is required", 400);
+        }
+
+        // Validate scopes if provided
+        const validScopes = [
+            "READ_ENV", "WRITE_ENV", "DELETE_ENV",
+            "READ_PROJECT", "WRITE_PROJECT", "DELETE_PROJECT",
+            "READ_BRANCH", "WRITE_BRANCH", "DELETE_BRANCH",
+            "MANAGE_MEMBERS", "MANAGE_BILLING"
+        ];
+        
+        let memberScopes = ["READ_ENV", "READ_PROJECT", "READ_BRANCH"]; // Default scopes
+        
+        if (requestedScopes && Array.isArray(requestedScopes)) {
+            const invalidScopes = requestedScopes.filter((s: string) => !validScopes.includes(s));
+            if (invalidScopes.length > 0) {
+                return errorResponse(`Invalid scopes: ${invalidScopes.join(", ")}`, 400);
+            }
+            // Never allow setting OWNER scope
+            if (requestedScopes.includes("OWNER")) {
+                return errorResponse("Cannot assign OWNER scope to members", 400);
+            }
+            memberScopes = requestedScopes;
         }
 
         // Find the user by email
@@ -127,12 +149,12 @@ const POST = (req: NextRequest, ctx: Context) => withAuth(req, async (req, authC
             return errorResponse("User is already a member of this project", 409);
         }
 
-        // Create member with default permissions
+        // Create member with specified or default permissions
         const newMember = await prisma.member.create({
             data: {
                 projectId,
                 userId: userToInvite.id,
-                scopes: ["READ_ENV", "READ_PROJECT", "READ_BRANCH"],
+                scopes: memberScopes,
             },
             include: {
                 user: {
