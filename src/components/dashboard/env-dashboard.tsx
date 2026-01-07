@@ -171,6 +171,7 @@ export function EnvDashboard({
                             setEnvs((prev) => [...prev, result.data]);
                         }
                     } catch (err) {
+                        console.error("Error importing variable:", err);
                         console.error("Failed to import:", trimmedKey);
                     }
                 }
