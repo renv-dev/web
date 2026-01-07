@@ -1,14 +1,32 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { user, scopes } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { ProjectOverview } from "@/components/dashboard/project-overview";
 
+
 export interface ProjectPageProps {
   params: Promise<{
     projectId: string;
   }>;
+}
+
+type Member = {
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  }
+
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  projectId: string;
+  userId: string;
+  scopes: scopes[];
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
@@ -77,7 +95,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             updatedAt: project.updatedAt,
           }}
           branches={project.branches}
-          members={project.members.map((m) => ({
+          members={project.members.map((m: Member) => ({
             ...m.user,
             scopes: m.scopes,
           }))}
