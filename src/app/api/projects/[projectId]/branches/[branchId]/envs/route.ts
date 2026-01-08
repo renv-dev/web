@@ -58,7 +58,7 @@ const GET = (req: NextRequest, context: Context) => withAuth(req, async (_, auth
 // POST: Create a new environment variable
 const POST = (req: NextRequest, context: Context) => withAuth(req, async (req, authCtx, ctx) => {
     if (!ctx) return errorResponse("Params not found", 400);
-    const { projectId, branchId } = await ctx.params;
+    const [{ projectId, branchId }, body] = await Promise.all([ctx.params, req.json()]);
 
     if (authCtx.type === "session") {
         const userId = authCtx.session!.userId;
@@ -87,18 +87,7 @@ const POST = (req: NextRequest, context: Context) => withAuth(req, async (req, a
         if (!canWrite) return forbiddenResponse("API token does not have permission to write environment variables");
     }
 
-    // Verify branch exists and belongs to project
-    const branch = await prisma.branch.findFirst({
-        where: { id: branchId, projectId },
-    });
-
-    if (!branch) {
-        return errorResponse("Branch not found", 404);
-    }
-
-    const body = await req.json();
     const { key, value } = body;
-
     if (!key || typeof key !== "string") {
         return errorResponse("Key is required", 400);
     }
@@ -108,18 +97,13 @@ const POST = (req: NextRequest, context: Context) => withAuth(req, async (req, a
         return errorResponse("Key must start with a letter and contain only uppercase letters, numbers, and underscores", 400);
     }
 
-    // Check for duplicate key
-    const existingEnv = await prisma.env.findFirst({
-        where: { branchId, key },
-    });
-
-    if (existingEnv) {
-        return errorResponse("Environment variable with this key already exists", 409);
-    }
-
     try {
-        const env = await prisma.env.create({
-            data: {
+        const env = await prisma.env.upsert({
+            where: { key_branchId: { key, branchId } },
+            update: {
+                value: value || "",
+            },
+            create: {
                 key,
                 value: value || "",
                 branchId,
